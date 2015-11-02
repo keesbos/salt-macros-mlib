@@ -1,0 +1,216 @@
+# vim:expandtab tabstop=4 shiftwidth=4 
+
+{% set version = (0, 1, 0) %}
+
+{#
+
+    Macro banner()
+        Build a banner
+
+    line_prepend
+        Prepend every line with the string
+        Default: '# '
+
+    line_append
+        Append to every line the string
+        Default: ''
+
+    block_prepend
+        Prepend the banner block with the string
+        Default: ''
+
+    block_append
+        Append to the banner block the string
+        Default: ''
+
+    indent_text
+        Indent (prepend) every line with indent_level times the string
+        Default: ''
+
+    indent_level
+        Indent (prepend) every line with indent_level times the indent_text.
+        Default: 1
+
+    text
+        Main banner text
+        Overrides pillar 'salt:banner:text' value
+        Default: 'File is managed by salt.\nCan be overwitten any time.'
+
+    source_label
+        Label for the source file reference
+        Default: 'Source: '
+
+    managed_by_label
+        Label for the managed_by
+        Default: 'Managed by: '
+        Only shown when managed_by is not empty
+
+    managed_by
+        Contact to be displayed. Only shown when managed_by is not empty.
+        Default: False
+        Overrides pillar 'salt:banner:managed_by' value
+
+    Example usage
+        pillar
+            salt:
+              banner:
+                text: "Example banner text.\nPossibly a multi line value."
+                # source_label: 'Source: '
+                # managed_by_label: 'Managed by: '
+                managed_by: 'Admins <admin@example.com>'
+
+        template
+            import the library:
+            {%- import "lib/mlib.jinja" as mlib -%}
+
+            banner block, lines starting with '// ' :
+            {{- mlib.banner('// ') }}
+            output:
+                  // Example banner text.
+                  // Possibly a multi line value.
+                  // 
+                  // Source: salt://module/files/template
+                  // Managed by: Admins <admin@example.com>
+
+            banner block, lines enclosed in '<!--' and '-->' :
+            {{- mlib.banner('   - ', block_prepend='<!--\n', block_append='\n   -->') }}
+            output:
+                <!--
+                   - Example banner text.
+                   - Possibly a multi line value.
+                   - 
+                   - Source: salt://module/files/template
+                   - Managed by: Admins <admin@axample.com>
+                   -->
+
+ #}
+{% macro banner(
+    line_prepend='# ',
+    line_append='',
+    block_prepend='',
+    block_append='',
+    indent_text='',
+    indent_level=1,
+    text='',
+    source_label='',
+    managed_by_label='',
+    managed_by=''
+) %}
+{%- set text = text or salt['pillar.get']('salt:banner:text', 'File is managed by salt.\nCan be overwitten any time.') %}
+{%- set source_label = source_label or salt['pillar.get']('salt:banner:source_label', 'Source: ') %}
+{%- set managed_by_label = managed_by_label or salt['pillar.get']('salt:banner:managed_by_label', 'Managed by: ') %}
+{%- set managed_by = managed_by or salt['pillar.get']('salt:banner:managed_by', False) %}
+{%- set indent = indent_level * indent_text %}
+{% if block_prepend %}{{ indent }}{{ block_prepend }}{% endif %}
+{%- for line in text.split('\n') -%}
+{{ indent }}{{ line_prepend }}{{ line }}{{ line_append }}
+{%- endfor %}
+{{ indent }}{{ line_prepend }}{{ line_append }}
+{{ indent }}{{ line_prepend }}{{ source_label }}{{ source }}{{ line_append }}
+{%- if managed_by %}
+{{ indent }}{{ line_prepend }}{{ managed_by_label }}{{ managed_by }}{{ line_append }}
+{%- endif %}
+{%- if block_append %}{{ indent }}{{ block_append }}{% endif %}
+{%- endmacro %}
+
+
+{#
+    Macro assignments()
+    data
+        data with mappings and/or lists
+        mappings will be replaced with
+            key = value (if line_assign is ' = ')
+        lists will inserted as is
+
+    line_assign
+        Default: ' = '
+
+    line_append
+        Default: ''
+
+    block_open
+        Default: '{'
+
+    block_close
+        Default: '}'
+
+    block_assign
+        Default: ' = '
+
+    indent_text
+        Default: '\t'
+
+    indent_level
+        Default: 0
+
+    excludes
+        Default: None
+
+    Example usage
+
+        pillar
+            example1:
+              var1: 'value1'
+              var2: 'value2'
+              list1:
+                - 'line 1.1'
+                - 'line 1.2'
+              var3:
+                var3a: value3a
+                var3b: value3b
+                list2:
+                  - 'line 2.1'
+                  - 'line 2.2'
+
+        template
+            import the library:
+            {%- import "lib/mlib.jinja" as mlib -%}
+            {{- mlib.assignments(salt['pillar.get']('example1'), indent_text='    ') }}
+            output:
+                list1 = {
+                    line 1.1
+                    line 1.2
+                }
+                var1 = value1
+                var3 = {
+                    var3b = value3b
+                    var3a = value3a
+                    list2 = {
+                        line 2.1
+                        line 2.2
+                    }
+                }
+                var2 = value2
+
+#}
+{% macro assignments(
+    data,
+    line_assign=' = ',
+    line_append='',
+    block_open='{',
+    block_close='}',
+    block_assign=' = ',
+    indent_text='\t',
+    indent_level=0,
+    excludes=None
+) %}
+{%- if not excludes %}{% set excludes = [] %}{% endif %}
+{%- for key, value in data.iteritems() -%}
+{% if key not in excludes %}
+{%- if value is iterable and value is not string %}
+{{ indent_level * indent_text }}{{ key }}{{ block_assign }}
+{%- if block_open %}{{ block_open }}{% endif %}
+{%- if value is mapping -%}
+{{ assignments(value, line_assign, line_append, block_open, block_close, block_assign, indent_text, indent_level + 1, excludes) }}
+{%- else %}
+{%- for item in value %}
+{{ (indent_level + 1) * indent_text }}{{ item }}{{ line_append }}
+{%- endfor %}
+{%- endif %}
+{% if block_close %}{{ indent_level * indent_text }}{{ block_close }}{% endif %}
+{%- else %}
+{{ indent_level * indent_text }}{{ key }}{{ line_assign }}{{ value }}{{ line_append }}
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+{%- endmacro %}
