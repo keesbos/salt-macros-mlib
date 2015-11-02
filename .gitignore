@@ -1,4 +1,6 @@
 
+*.swp
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
