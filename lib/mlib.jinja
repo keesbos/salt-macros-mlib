@@ -61,10 +61,10 @@
 
         template
             import the library:
-            {%- import "lib/mlib.jinja" as mlib -%}
+            {%- import "lib/mlib.jinja" as mlib %}
 
             banner block, lines starting with '// ' :
-            {{- mlib.banner('// ') }}
+            {{ mlib.banner('// ') }}
             output:
                   // Example banner text.
                   // Possibly a multi line value.
@@ -73,7 +73,7 @@
                   // Managed by: Admins <admin@example.com>
 
             banner block, lines enclosed in '<!--' and '-->' :
-            {{- mlib.banner('   - ', block_prepend='<!--\n', block_append='\n   -->') }}
+            {{ mlib.banner('   - ', block_prepend='<!--\n', block_append='\n   -->') }}
             output:
                 <!--
                    - Example banner text.
@@ -101,7 +101,7 @@
 {%- set managed_by_label = managed_by_label or salt['pillar.get']('salt:banner:managed_by_label', 'Managed by: ') %}
 {%- set managed_by = managed_by or salt['pillar.get']('salt:banner:managed_by', False) %}
 {%- set indent = indent_level * indent_text %}
-{% if block_prepend %}{{ indent }}{{ block_prepend }}{% endif %}
+{%- if block_prepend %}{{ indent }}{{ block_prepend }}{% endif %}
 {%- for line in text.split('\n') -%}
 {{ indent }}{{ line_prepend }}{{ line }}{{ line_append }}
 {%- endfor %}
@@ -164,7 +164,7 @@
 
         template
             import the library:
-            {%- import "lib/mlib.jinja" as mlib -%}
+            {%- import "lib/mlib.jinja" as mlib %}
             {{- mlib.assignments(salt['pillar.get']('example1'), indent_text='    ') }}
             output:
                 list1 = {
