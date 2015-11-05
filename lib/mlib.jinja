@@ -104,7 +104,7 @@
 {%- if block_prepend %}{{ indent }}{{ block_prepend }}{% endif %}
 {%- for line in text.split('\n') -%}
 {{ indent }}{{ line_prepend }}{{ line }}{{ line_append }}
-{%- endfor %}
+{% endfor -%}
 {{ indent }}{{ line_prepend }}{{ line_append }}
 {{ indent }}{{ line_prepend }}{{ source_label }}{{ source }}{{ line_append }}
 {%- if managed_by %}
